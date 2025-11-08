@@ -52,6 +52,10 @@ jobs:
         working-directory: web
         run: npm install
 
+      - name: Fix vite permission
+        working-directory: web
+        run: chmod +x ./node_modules/.bin/vite || true
+
       - name: Build web
         working-directory: web
         run: npm run build
