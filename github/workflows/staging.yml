@@ -1,0 +1,48 @@
+name: AIME Staging Deploy (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      NODE_ENV: staging
+      FEATURE_ADMIN_ONLY: "true"
+      FEATURE_PARTNER: "false"
+      FEATURE_MEMBERS: "false"
+      FEATURE_SIGNAL_NETWORK: "false"   # DO NOT set true until Trigger Map QA = Complete
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # BACKEND
+      - name: Install backend deps
+        working-directory: server
+        run: npm install
+
+      - name: Build backend
+        working-directory: server
+        run: npm run build
+
+      - name: Run backend smoke
+        working-directory: server
+        run: npm run smoke
+
+      # FRONTEND
+      - name: Install web deps
+        working-directory: web
+        run: npm install
+
+      - name: Build web
+        working-directory: web
+        run: npm run build
+
+      - name: Deployment complete
+        run: echo "Staging build completed successfully."
