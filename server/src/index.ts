@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config } from 'dotenv';
 config();
 import { healthRouter } from './routes/health.js';
+import { partnerConfigRouter } from './routes/partnerConfig.js';
 import { z } from 'zod';
 
 const FeatureFlags=z.object({FEATURE_ADMIN_ONLY:z.string().default('true'),FEATURE_PARTNER:z.string().default('false'),FEATURE_MEMBERS:z.string().default('false'),FEATURE_SIGNAL_NETWORK:z.string().default('false')});
@@ -18,6 +19,7 @@ app.get('/api/status',(_req , res ) => {
 );
     
 app.use('/api/health',healthRouter);
+app.use('/api/partner', partnerConfigRouter);
     
 app.post('/api/smoke/core',( req , res ) => {
     const ok=true;
