@@ -31,30 +31,14 @@ jobs:
         working-directory: server
         run: npm run build
 
-      - name: Start backend server
-        working-directory: server
-        run: |
-          nohup npm start > server.log 2>&1 &
-          sleep 8
-
       - name: Run backend smoke
         working-directory: server
         run: npm run smoke
-
-      - name: Print backend logs (if smoke fails)
-        if: failure()
-        working-directory: server
-        run: cat server.log
-
 
       # FRONTEND
       - name: Install web deps
         working-directory: web
         run: npm install
-
-      - name: Fix vite permission
-        working-directory: web
-        run: chmod +x ./node_modules/.bin/vite || true
 
       - name: Build web
         working-directory: web
