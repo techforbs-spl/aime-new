@@ -1,48 +1,77 @@
-name: AIME Staging Deploy (manual)
+name: Staging Deployment
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]  # or your staging branch name
+  workflow_dispatch:    # Allow manual triggers
 
 jobs:
-  deploy-staging:
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        shell: bash
-
-    env:
-      NODE_ENV: staging
-      FEATURE_ADMIN_ONLY: "true"
-      FEATURE_PARTNER: "false"
-      FEATURE_MEMBERS: "false"
-      FEATURE_SIGNAL_NETWORK: "false"   # DO NOT set true until Trigger Map QA = Complete
-
+    
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # BACKEND
-      - name: Install backend deps
-        working-directory: server
-        run: npm install
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
 
-      - name: Build backend
-        working-directory: server
-        run: npm run build
+    - name: Install dependencies
+      working-directory: ./server
+      run: npm ci
 
-      - name: Run backend smoke
-        working-directory: server
-        run: npm run smoke
+    - name: Build
+      working-directory: ./server
+      run: npm run build
+      env:
+        NODE_ENV: production
 
-      # FRONTEND
-      - name: Install web deps
-        working-directory: web
-        run: npm install
+    - name: Run smoke tests
+      working-directory: ./server
+      run: |
+        # Start server in background
+        npm run start & 
+        # Wait for server to be ready
+        npx wait-on http://localhost:8080/api/health
+        # Run smoke tests
+        npm run smoke
+      env:
+        NODE_ENV: test
+        PORT: 8080
 
-      - name: Build web
-        working-directory: web
-        run: npm run build
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Deployment complete
-        run: echo "Staging build completed successfully."
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      working-directory: ./server
+      run: npm ci --production
+
+    - name: Deploy to Staging
+      run: |
+        # Add your deployment commands here
+        # For example, if using PM2:
+        # npm install -g pm2
+        # pm2 start dist/index.js --name "aime-staging"
+        echo "Deployment to staging would happen here"
+      env:
+        NODE_ENV: staging
+        # Add your staging environment variables here
+        # DATABASE_URL: ${{ secrets.STAGING_DB_URL }}
+        # OTHER_ENV_VAR: ${{ secrets.OTHER_STAGING_VAR }}
