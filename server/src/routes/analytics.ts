@@ -1,6 +1,19 @@
 import { Router } from 'express'
 import { getSnapshot, DashboardSnapshot, SignalEntry, CommentEntry } from '../data/snapshots.js'
 
+interface DailyTrendData {
+  date: string;
+  signals: number;
+  comments: number;
+  clicks: number;
+  personas: {
+    rn_clinical: number;
+    md_functional: number;
+    chiro_sports: number;
+    physio_rehab: number;
+  };
+}
+
 const analyticsRouter = Router()
 
 const RANGE_CONFIG: Record<string, { points: number; bucketHours: number }> = {
@@ -159,7 +172,7 @@ function getTrendData(partner: string) {
   try {
     const snapshot = getSnapshot(partner)
     const now = new Date()
-    const dailyData = []
+    const dailyData: DailyTrendData[] = []
     
     // Group signals and comments by date
     const signalsByDate: Record<string, SignalEntry[]> = {}
