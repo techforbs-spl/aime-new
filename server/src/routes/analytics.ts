@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import { getSnapshot, DashboardSnapshot } from '../data/snapshots.js'
-import { format } from 'date-fns'
 
 const analyticsRouter = Router()
 
@@ -73,78 +72,6 @@ analyticsRouter.get('/error-rate', (req, res) => {
 analyticsRouter.get('/campaign-performance', (req, res) => {
   const snapshot = getSnapshot(req.query.partner as string | undefined)
   res.json(snapshot.campaigns)
-})
-
-// Generate synthetic daily data for testing
-function generateSyntheticTrendData(partner: string) {
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(endDate.getDate() - 30) // Last 30 days
-  
-  const days = []
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = format(d, 'yyyy-MM-dd')
-    const daySeed = parseInt(dateStr.replace(/-/g, ''), 10)
-    
-    // Generate semi-random but deterministic values based on date and partner
-    const signals = Math.round(30 + Math.sin(daySeed) * 20 + (partner === 'allmax' ? 50 : 20))
-    const comments = Math.round(signals * (0.15 + Math.sin(daySeed * 2) * 0.05))
-    const clicks = Math.round(comments * (0.7 + Math.sin(daySeed * 3) * 0.2))
-    
-    // Persona distribution
-    const personas = {
-      rn_clinical: Math.max(1, Math.round(Math.sin(daySeed * 0.5) * 2 + 4)),
-      md_functional: Math.max(0, Math.round(Math.sin(daySeed * 0.7) * 1 + 1)),
-      chiro_sports: Math.max(0, Math.round(Math.sin(daySeed * 0.6) * 2 + 2)),
-      physio_rehab: Math.max(0, Math.round(Math.sin(daySeed * 0.8) * 1 + 1))
-    }
-
-    days.push({
-      date: dateStr,
-      signals,
-      comments,
-      clicks,
-      personas
-    })
-  }
-  
-  return days
-}
-
-// Calculate weekly summary from daily data
-function calculateWeeklySummary(dailyData: any[]) {
-  const last7Days = dailyData.slice(-7)
-  return {
-    signals: last7Days.reduce((sum: number, day: any) => sum + day.signals, 0),
-    comments: last7Days.reduce((sum: number, day: any) => sum + day.comments, 0),
-    clicks: last7Days.reduce((sum: number, day: any) => sum + day.clicks, 0)
-  }
-}
-
-analyticsRouter.get('/trend', (req, res) => {
-  try {
-    const snapshot = getSnapshot(req.query.partner as string | undefined)
-    const partner = (req.query.partner as string) || 'default'
-    
-    // In a real implementation, you would query your database here
-    // For now, we'll use synthetic data
-    const dailyData = generateSyntheticTrendData(partner)
-    const weeklySummary = calculateWeeklySummary(dailyData)
-    
-    res.json({
-      success: true,
-      data: {
-        daily: dailyData,
-        weekly_summary: weeklySummary
-      }
-    })
-  } catch (error) {
-    console.error('Error in /analytics/trend:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch trend data'
-    })
-  }
 })
 
 analyticsRouter.get('/export/csv', (req, res) => {
