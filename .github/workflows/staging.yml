@@ -2,8 +2,8 @@ name: Staging Deployment
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main ]  # or your staging branch name
+  workflow_dispatch:    # Allow manual triggers
 
 jobs:
   build-and-test:
@@ -22,7 +22,7 @@ jobs:
 
     - name: Install dependencies
       working-directory: ./server
-      run: npm ci  # This installs both dependencies and devDependencies
+      run: npm ci
 
     - name: Build
       working-directory: ./server
@@ -57,14 +57,15 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
+        cache: 'npm'
 
-    - name: Install production dependencies
+    - name: Install dependencies
       working-directory: ./server
       run: npm ci --production
 
     - name: Deploy to Staging
       run: |
-        # Your deployment commands here
+        # Add your deployment commands here
         # For example, if using PM2:
         # npm install -g pm2
         # pm2 start dist/index.js --name "aime-staging"
