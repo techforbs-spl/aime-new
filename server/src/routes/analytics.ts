@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { getSnapshot, DashboardSnapshot } from '../data/snapshots.js'
-import { subDays, formatISO, startOfDay, endOfDay, subWeeks, eachDayOfInterval, isWithinInterval } from 'date-fns'
+import { format } from 'date-fns'
 
 const analyticsRouter = Router()
 
@@ -83,7 +83,7 @@ function generateSyntheticTrendData(partner: string) {
   
   const days = []
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = format(d, 'yyyy-MM-dd')
     const daySeed = parseInt(dateStr.replace(/-/g, ''), 10)
     
     // Generate semi-random but deterministic values based on date and partner
