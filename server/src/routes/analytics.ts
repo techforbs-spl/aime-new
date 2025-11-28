@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { getPartnerConfig, PartnerConfig } from '../services/partnerConfigLoader';
+import { z } from 'zod';
+import { getPartnerConfig, PartnerConfig, PartnerConfigSchema } from '../services/partnerConfigLoader';
+
+type AnalyticsConfig = z.infer<typeof PartnerConfigSchema>['analytics'];
 
 const analyticsRouter = Router();
 
@@ -27,7 +30,7 @@ function buildTrend(
   config: PartnerConfig,
   days: number
 ): TrendPoint[] {
-  const { analytics } = config;
+  const analytics = config.analytics as AnalyticsConfig;
   const now = new Date();
 
   const base =
