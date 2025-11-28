@@ -1,36 +1,11 @@
-import { Router, Request, Response } from 'express';
-import { getPartnerConfig } from '../services/partnerConfigLoader';
+import { Router } from 'express'
+import { getSnapshot } from '../data/snapshots.js'
 
-const creatorRouter = Router();
+const creatorRouter = Router()
 
-// GET /api/creator/list?partner=PARTNER_ID
-creatorRouter.get('/list', (req: Request, res: Response) => {
-  const partnerId = (req.query.partner as string) || '';
+creatorRouter.get('/list', (req, res) => {
+  const snapshot = getSnapshot(req.query.partner as string | undefined)
+  res.json(snapshot.creators)
+})
 
-  if (!partnerId) {
-    return res.status(400).json({ error: 'Missing partner query parameter' });
-  }
-
-  const config = getPartnerConfig(partnerId);
-  if (!config) {
-    return res.status(404).json({ error: `Partner not found: ${partnerId}` });
-  }
-
-  res.json({
-    partner: config.id,
-    creators: config.creators || []
-  });
-});
-
-export default creatorRouter;
-
-
-
-
-
-
-
-
-
-
-
+export default creatorRouter
