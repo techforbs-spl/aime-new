@@ -30,7 +30,14 @@ function buildTrend(
   config: PartnerConfig,
   days: number
 ): TrendPoint[] {
-  const analytics = config.analytics as AnalyticsConfig;
+  const analytics = config.analytics as {
+    baselineSignals: number;
+    baselineComments: number;
+    baselineLatencyMs: number;
+    baselineErrorRate: number;
+    noiseMultiplier: number;
+    dailyGrowthRate: number;
+  };
   const now = new Date();
 
   const base =
