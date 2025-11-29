@@ -1,110 +1,98 @@
-import fs from "fs";
 import path from "path";
-import { z } from "zod";
+import fs from "fs";
 
-const CONFIG_DIR = path.join(process.cwd(), "partner-config");
+// -----------------------------
+// TYPES
+// -----------------------------
 
-//
-// 1. Define the schema for partner configs
-//
-export const PartnerConfigSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  mode: z.enum(["professional", "high-volume", "hybrid"]).default("hybrid"),
+export interface PersonaConfig {
+  id: string;
+  name: string;
+  tier?: "standard" | "premium";
+  active?: boolean;
+}
 
-  routing: z.object({
-    enabled: z.boolean().default(true),
-    signalWeight: z.number().default(1),
-    commentWeight: z.number().default(1),
-    personaMap: z.record(z.string(), z.string()).optional(), // personaId -> tier
-  }),
+export interface CreatorConfig {
+  id: string;
+  name: string;
+  specialty?: string;
+  active?: boolean;
+}
 
-  analytics: z.object({
-    baselineSignals: z.number().default(0),
-    baselineComments: z.number().default(0),
-    noiseMultiplier: z.number().default(1.0),
-    dailyGrowthRate: z.number().default(1.01),
-  }),
+export interface AnalyticsConfig {
+  baselineSignals: number;
+  baselineComments: number;
+  baselineLatencyMs: number;
+  baselineErrorRate: number;
+  dailyGrowthRate: number;
+  noiseMultiplier: number;
+}
 
-  personas: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      tier: z.string().optional(),
-      active: z.boolean().default(true),
-      notes: z.string().optional(),
-    })
-  ).optional(),
+export interface PartnerConfig {
+  id: string;
+  name: string;
+  personas?: PersonaConfig[];
+  creators?: CreatorConfig[];
+  analytics: AnalyticsConfig;
+}
 
-  creators: z.array(
-    z.object({
-      id: z.string(),
-      handle: z.string(),
-      platform: z.string().default("instagram"),
-      followers: z.number().default(0),
-      active: z.boolean().default(true),
-    })
-  ).optional(),
-});
+// -----------------------------
+// INTERNAL CACHE
+// -----------------------------
 
-export type PartnerConfig = z.infer<typeof PartnerConfigSchema>;
-
-
-//
-// 2. Internal memory cache
-//
 let partnerConfigs: Record<string, PartnerConfig> = {};
 
+// -----------------------------
+// LOAD JSON FILES
+// -----------------------------
 
-//
-// 3. Load all configs from /partner-config/*.json
-//
-export function loadPartnerConfigs(): void {
-  partnerConfigs = {}; // reset
+export function loadPartnerConfigs() {
+  try {
+    const filePath = path.join(__dirname, "../config/partners.json");
 
-  if (!fs.existsSync(CONFIG_DIR)) {
-    console.warn(`[PartnerConfigLoader] No config directory found at ${CONFIG_DIR}`);
-    return;
-  }
-
-  const files = fs.readdirSync(CONFIG_DIR).filter(f => f.endsWith(".json"));
-
-  for (const file of files) {
-    try {
-      const raw = fs.readFileSync(path.join(CONFIG_DIR, file), "utf-8");
-      const json = JSON.parse(raw);
-
-      const parsed = PartnerConfigSchema.parse(json);
-
-      partnerConfigs[parsed.id] = parsed;
-
-      console.log(`[PartnerConfigLoader] Loaded config for partner: ${parsed.id}`);
-    } catch (err) {
-      console.error(`[PartnerConfigLoader] Failed to load ${file}:`, err);
+    if (!fs.existsSync(filePath)) {
+      console.warn("⚠️ partners.json not found — using empty config.");
+      partnerConfigs = {};
+      return;
     }
+
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const list: PartnerConfig[] = JSON.parse(raw);
+
+    partnerConfigs = {};
+    list.forEach((pc) => {
+      partnerConfigs[pc.id] = pc;
+    });
+
+    console.log("✅ Partner configs loaded:", Object.keys(partnerConfigs));
+  } catch (err) {
+    console.error("❌ Failed to load partner configs:", err);
+    partnerConfigs = {};
   }
 }
 
-//
-// 4. Public API
-//
+// -----------------------------
+// GET CONFIG BY PARTNER ID
+// -----------------------------
 
-// Get config by ID
 export function getPartnerConfig(id: string): PartnerConfig | null {
-  return partnerConfigs[id] ?? null;
+  if (!id) return null;
+
+  // Normalize ID (case-insensitive)
+  const key = id.trim().toLowerCase();
+
+  const config = partnerConfigs[key];
+  return config || null;
 }
 
-// Get all configs
-export function getAllPartnerConfigs(): PartnerConfig[] {
-  return Object.values(partnerConfigs);
-}
+// -----------------------------
+// OPTIONAL: HOT RELOAD (DEV ONLY)
+// -----------------------------
 
-// Force reload from disk
-export function refreshConfigs(): void {
+export function reloadPartnerConfigs() {
+  console.log("♻️ Reloading partner configs...");
   loadPartnerConfigs();
 }
 
-//
-// 5. Initialize on first import
-//
+// Initial load
 loadPartnerConfigs();
