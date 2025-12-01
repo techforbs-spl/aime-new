@@ -64,7 +64,8 @@ function loadJsonConfig(configPath: string): any {
 // --- Loader for GIMA V4 ---
 
 export function loadGimaPartnerConfigV4(): PartnerConfig {
-  const configPath = "configs/partners/gima/gima_partner_config_v4.json";
+  // Use a path relative to the current file's location
+  const configPath = path.join(process.cwd(), 'src', 'configs', 'partners', 'gima', 'gima_partner_config_v4.json');
   const json = loadJsonConfig(configPath);
 
   // Validate basic shape for safety
