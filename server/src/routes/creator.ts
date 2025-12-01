@@ -1,7 +1,4 @@
-import express from 'express';
 import type { PersonaKey } from "./persona";
-
-const router = express.Router();
 
 export type PartnerId = "allmax" | "adeeva" | "gima";
 
@@ -69,29 +66,3 @@ export function assignCreatorToGima(
 export function listCreators(): CreatorProfile[] {
   return Object.values(creatorRegistry);
 }
-
-// API Routes
-router.get('/', (req, res) => {
-  res.json(listCreators());
-});
-
-router.get('/:id', (req, res) => {
-  const creator = getCreatorById(req.params.id);
-  if (creator) {
-    res.json(creator);
-  } else {
-    res.status(404).json({ error: 'Creator not found' });
-  }
-});
-
-router.post('/', (req, res) => {
-  try {
-    const creator = req.body as CreatorProfile;
-    upsertCreator(creator);
-    res.status(201).json(creator);
-  } catch (error) {
-    res.status(400).json({ error: 'Invalid creator data' });
-  }
-});
-
-export const creatorRouter = router;
