@@ -1,0 +1,209 @@
+{
+  "partner_name": "GIMA",
+  "display_name": "Global Integrative Medicine Academy",
+  "partner_id": "gima",
+  "version": 4,
+  "label": "GIMA Partner Config V4 — Professional High-Volume Hybrid",
+  "status": "active",
+
+  "mode": {
+    "type": "hybrid_professional_volume",
+    "profile": "professional_evidence",
+    "volume": "expanded_signal_window",
+    "description": "Merged practitioner-education and high-volume symptom/clinical pattern detection for integrative medicine content."
+  },
+
+  "personas": {
+    "primary": "practitioner_educator",
+    "secondary": [
+      "clinical_insights",
+      "gima_academic_tone",
+      "evidence_based_explainer"
+    ]
+  },
+
+  "signal_library": {
+    "hashtags": [
+      "integrativemedicine",
+      "functionalmedicine",
+      "clinicaleducation",
+      "practitionertraining",
+      "cmecourses",
+      "meded",
+      "healthprofessional",
+      "casebasedlearning",
+      "functionalnutrition"
+    ],
+    "keywords": [
+      "case study",
+      "symptom pattern",
+      "clinical protocol",
+      "nutraceutical",
+      "functional lab markers",
+      "treatment framework",
+      "practitioner guidance",
+      "clinical question",
+      "webinar",
+      "continuing education",
+      "functional assessment",
+      "integrative approach",
+      "evidence-based",
+      "patient presentation",
+      "root cause"
+    ],
+    "engagement_patterns": [
+      "seeking guidance",
+      "professional question",
+      "clinical dilemma",
+      "symptom inquiry",
+      "protocol comparison",
+      "education request"
+    ]
+  },
+
+  "trigger_library": {
+    "practitioner_education": {
+      "trigger_type": "practitioner_education",
+      "keywords": [
+        "integrative medicine",
+        "functional medicine",
+        "clinical education",
+        "continuing education",
+        "CME",
+        "practitioner training",
+        "clinical mastery"
+      ],
+      "persona": "practitioner_educator",
+      "cluster_id": "GIMA_Edu_Cluster_01",
+      "routing": "edu_link_safe",
+      "cooldown_seconds": 45
+    },
+    "clinical_case_discussion": {
+      "trigger_type": "clinical_case_discussion",
+      "keywords": [
+        "case study",
+        "patient presented with",
+        "clinical pattern",
+        "assessment findings",
+        "treatment framework",
+        "clinical reasoning"
+      ],
+      "persona": "clinical_insights",
+      "cluster_id": "GIMA_Edu_Cluster_02",
+      "routing": "edu_case_cta",
+      "cooldown_seconds": 60
+    },
+    "symptom_pattern_query": {
+      "trigger_type": "symptom_pattern_query",
+      "keywords": [
+        "fatigue causes",
+        "gut imbalance",
+        "immune support",
+        "inflammation protocol",
+        "functional approach",
+        "hormone balance",
+        "digestive issues"
+      ],
+      "persona": "gima_academic_tone",
+      "cluster_id": "GIMA_Edu_Cluster_03",
+      "routing": "edu_snippet",
+      "cooldown_seconds": 75
+    },
+    "professional_guidance_request": {
+      "trigger_type": "professional_guidance_request",
+      "keywords": [
+        "what supplement helps",
+        "how do you treat",
+        "protocol for",
+        "clinical recommendation",
+        "functional approach to",
+        "how do you manage",
+        "practitioner opinions on"
+      ],
+      "persona": "evidence_based_explainer",
+      "cluster_id": "GIMA_Edu_Cluster_04",
+      "routing": "edu_longform",
+      "cooldown_seconds": 90
+    }
+  },
+
+  "comment_engine": {
+    "tone": "academic_neutral_supportive",
+    "rules": {
+      "compliance_mode": "non_diagnostic",
+      "avoid_claims": true,
+      "avoid_treatment_language": true,
+      "reference_evidence_framework": true,
+      "audience": "health_professionals_only"
+    },
+    "cluster_types": [
+      "educational_context",
+      "evidence_reference",
+      "gentle_redirect",
+      "professional_acknowledgement"
+    ],
+    "cta": {
+      "primary_cta": "Learn more at the GIMA Academy.",
+      "cta_type": "soft_redirect",
+      "allow_links": true,
+      "use_safe_link_wrapping": true,
+      "no_direct_course_promise": true
+    }
+  },
+
+  "routing": {
+    "primary_cta": "Learn more at the GIMA Academy.",
+    "cta_type": "soft_redirect",
+    "cta_rules": {
+      "allow_links": true,
+      "use_safe_link_wrapping": true,
+      "no_direct_course_promise": true
+    },
+    "routing_paths": {
+      "education_query": "redirect_to_gima_education",
+      "clinical_context": "redirect_to_gima_case_library",
+      "professional_discussion": "redirect_to_gima_webinars",
+      "lean_program": "redirect_to_gima_flagship_program"
+    }
+  },
+
+  "reporting": {
+    "metrics_enabled": true,
+    "metrics": [
+      "keyword_heatmap",
+      "education_interest_map",
+      "persona_match_rate",
+      "trigger_fire_frequency",
+      "conversion_funnel_step1",
+      "lean_program_clicks",
+      "lean_program_enrollments"
+    ],
+    "conversion_events": {
+      "step1": "clicked_link_to_gima",
+      "step2": "viewed_landing_page",
+      "step3": "submitted_email",
+      "step4": "enrolled_in_course"
+    }
+  },
+
+  "governance": {
+    "qa_profile": "gima_qa_v1",
+    "filters": {
+      "blocked_terms": [
+        "diagnose",
+        "treat",
+        "cure",
+        "medical advice",
+        "prescribe"
+      ],
+      "tone_requirements": [
+        "neutral",
+        "evidence-based",
+        "non-prescriptive",
+        "professional"
+      ]
+    },
+    "posting_mode": "shadow_only",
+    "notes": "All comments must remain non-diagnostic and educational. This config is hybrid high-volume + professional mode; ensure staging-only testing before any production posting."
+  }
+}
