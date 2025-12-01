@@ -1,8 +1,9 @@
+import express, { Request, Response } from 'express';
 import {
   getAllPartnerConfigs,
   getPartnerConfig,
   type PartnerConfig
-} from "./partnerConfigLoader";
+} from "../services/partnerConfigLoader";
 
 // Basic event type – your implementation may extend this.
 export interface AnalyticsEvent {
@@ -152,3 +153,14 @@ export function getGimaLeanProgramSummary(
     lean_program_enrollments: enrollments
   };
 }
+
+// Create an Express router for analytics endpoints
+const router = express.Router();
+
+// Example route - adjust according to your needs
+router.get('/summary', (req: Request, res: Response) => {
+  // This is a placeholder - implement actual logic here
+  res.json({ message: 'Analytics summary endpoint' });
+});
+
+export default router;
