@@ -1,6 +1,4 @@
-import * as express from 'express';
-import type { Request, Response } from 'express';
-import type { PersonaKey } from "./persona.js";
+import type { PersonaKey } from "./persona";
 
 export type PartnerId = "allmax" | "adeeva" | "gima";
 
@@ -68,34 +66,3 @@ export function assignCreatorToGima(
 export function listCreators(): CreatorProfile[] {
   return Object.values(creatorRegistry);
 }
-
-// Create an Express router for creator endpoints
-const router = express.Router();
-
-// Get all creators
-router.get('/', (req: Request, res: Response) => {
-  const creators = listCreators();
-  res.json(creators);
-});
-
-// Get a specific creator by ID
-router.get('/:id', (req: Request, res: Response) => {
-  const creator = getCreatorById(req.params.id);
-  if (!creator) {
-    return res.status(404).json({ error: 'Creator not found' });
-  }
-  res.json(creator);
-});
-
-// Create or update a creator
-router.post('/', (req: Request, res: Response) => {
-  try {
-    const creator: CreatorProfile = req.body;
-    upsertCreator(creator);
-    res.status(201).json(creator);
-  } catch (error) {
-    res.status(400).json({ error: 'Invalid creator data' });
-  }
-});
-
-export default router;
