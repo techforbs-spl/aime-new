@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import type { PersonaKey } from "./persona";
+import type { PersonaKey } from "./persona.js";
 
 export type PartnerId = "allmax" | "adeeva" | "gima";
 
