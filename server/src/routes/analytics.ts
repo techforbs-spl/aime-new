@@ -3,7 +3,7 @@ import {
   getAllPartnerConfigs,
   getPartnerConfig,
   type PartnerConfig
-} from "../services/partnerConfigLoader";
+} from "../services/partnerConfigLoader.js";
 
 // Basic event type – your implementation may extend this.
 export interface AnalyticsEvent {
