@@ -1,183 +1,154 @@
-import { Router, Request, Response } from 'express';
-import { z } from 'zod';
-import { getPartnerConfig, PartnerConfig, PartnerConfigSchema } from '../services/partnerConfigLoader';
+import {
+  getAllPartnerConfigs,
+  getPartnerConfig,
+  type PartnerConfig
+} from "./partnerConfigLoader";
 
-type AnalyticsConfig = z.infer<typeof PartnerConfigSchema>['analytics'];
-
-const analyticsRouter = Router();
-
-type TrendPoint = {
-  timestamp: string;
-  value: number;
-};
-
-// Helper: parse "7d", "30d", "90d"
-function parseRange(range?: string): number {
-  switch (range) {
-    case '7d':
-      return 7;
-    case '90d':
-      return 90;
-    case '30d':
-    default:
-      return 30;
-  }
+// Basic event type – your implementation may extend this.
+export interface AnalyticsEvent {
+  partner_id: string; // e.g. "gima", "allmax", "adeeva"
+  type: string; // e.g. "click", "view", "comment", "conversion"
+  metric?: string; // e.g. "lean_program_clicks", "lean_program_enrollments"
+  timestamp: string; // ISO date string
+  meta?: Record<string, any>;
 }
 
-// Build a synthetic trend based on PartnerConfig.analytics
-function buildTrend(
-  metric: 'signals' | 'comments' | 'latency' | 'errorRate',
-  config: PartnerConfig,
-  days: number
-): TrendPoint[] {
-  const analytics = config.analytics as {
-    baselineSignals: number;
-    baselineComments: number;
-    baselineLatencyMs: number;
-    baselineErrorRate: number;
-    noiseMultiplier: number;
-    dailyGrowthRate: number;
-  };
-  const now = new Date();
+export interface MetricCount {
+  metric: string;
+  count: number;
+}
 
-  const base =
-    metric === 'signals'
-      ? analytics.baselineSignals
-      : metric === 'comments'
-      ? analytics.baselineComments
-      : metric === 'latency'
-      ? analytics.baselineLatencyMs
-      : analytics.baselineErrorRate * 100;
+export interface PartnerAnalyticsSummary {
+  partner_id: string;
+  display_name: string;
+  version?: number;
+  total_events: number;
+  metrics: MetricCount[];
+}
 
-  const trend: TrendPoint[] = [];
+/**
+ * Build a quick lookup for metrics we care about based on partner configs.
+ * This allows us to align metrics directly with each partner's config.reporting.metrics array.
+ */
+function buildConfiguredMetricSet(
+  partnerConfigs: PartnerConfig[]
+): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
 
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(now.getDate() - i);
+  for (const cfg of partnerConfigs) {
+    const partnerId = cfg.partner_id;
+    const metricsList =
+      (cfg.reporting && (cfg.reporting as any).metrics) || [];
 
-    const growth = Math.pow(analytics.dailyGrowthRate, -i);
-    const noise =
-      (Math.random() - 0.5) *
-      analytics.noiseMultiplier *
-      (metric === 'errorRate' ? 1 : base * 0.05);
+    map.set(partnerId, new Set(metricsList as string[]));
+  }
 
-    let value = base * growth + noise;
+  return map;
+}
 
-    if (metric === 'errorRate') {
-      value = Math.max(0, Math.min(100, value));
-    } else {
-      value = Math.max(0, value);
+/**
+ * Compute per-partner metric counts from a stream of events.
+ *
+ * Example use:
+ *  const summaries = summarizeEvents(eventsFromDBOrLog);
+ */
+export function summarizeEvents(
+  events: AnalyticsEvent[]
+): PartnerAnalyticsSummary[] {
+  const configs = getAllPartnerConfigs();
+  const configuredMetricSet = buildConfiguredMetricSet(configs);
+
+  const summaryMap = new Map<string, PartnerAnalyticsSummary>();
+
+  for (const event of events) {
+    const partnerId = event.partner_id;
+    if (!partnerId) continue;
+
+    // Ensure we have a config for this partner.
+    const cfg = getPartnerConfig(partnerId);
+    if (!cfg) continue;
+
+    // Initialize summary for this partner if needed.
+    if (!summaryMap.has(partnerId)) {
+      summaryMap.set(partnerId, {
+        partner_id: partnerId,
+        display_name: cfg.display_name,
+        version: (cfg as any).version,
+        total_events: 0,
+        metrics: []
+      });
     }
 
-    trend.push({
-      timestamp: date.toISOString(),
-      value: Number(value.toFixed(2)),
-    });
+    const summary = summaryMap.get(partnerId)!;
+    summary.total_events += 1;
+
+    const partnerMetricSet = configuredMetricSet.get(partnerId);
+    if (!partnerMetricSet) continue;
+
+    // Only count metrics that the config actually cares about.
+    const metricKey =
+      event.metric && partnerMetricSet.has(event.metric)
+        ? event.metric
+        : undefined;
+
+    if (!metricKey) continue;
+
+    let metricEntry = summary.metrics.find((m) => m.metric === metricKey);
+    if (!metricEntry) {
+      metricEntry = { metric: metricKey, count: 0 };
+      summary.metrics.push(metricEntry);
+    }
+
+    metricEntry.count += 1;
   }
 
-  return trend;
+  return Array.from(summaryMap.values());
 }
 
-// Utility: Resolve partner or return null
-function resolvePartner(req: Request, res: Response): PartnerConfig | null {
-  const partnerId = (req.query.partner as string) || '';
-
-  if (!partnerId) {
-    res.status(400).json({ error: 'Missing partner query param' });
-    return null;
-  }
-
-  const config = getPartnerConfig(partnerId);
-
-  if (!config) {
-    res.status(404).json({ error: `Unknown partner: ${partnerId}` });
-    return null;
-  }
-
-  return config;
+/**
+ * Convenience helper for GIMA-specific reporting (e.g. lean program).
+ */
+export interface GimaLeanProgramSummary {
+  partner_id: "gima";
+  version?: number;
+  lean_program_clicks: number;
+  lean_program_enrollments: number;
 }
 
-// ----------------------- ROUTES -----------------------
+/**
+ * Extracts a lean metrics view just for GIMA (using V4 config assumptions).
+ */
+export function getGimaLeanProgramSummary(
+  events: AnalyticsEvent[]
+): GimaLeanProgramSummary | null {
+  const cfg = getPartnerConfig("gima");
+  if (!cfg) return null;
 
-analyticsRouter.get('/signal-volume', (req, res) => {
-  const config = resolvePartner(req, res);
-  if (!config) return;
-
-  const days = parseRange(req.query.range as string);
-  const trend = buildTrend('signals', config, days);
-
-  return res.json({
-    partner: config.id,
-    metric: 'signal-volume',
-    rangeDays: days,
-    points: trend,
-  });
-});
-
-analyticsRouter.get('/comment-volume', (req, res) => {
-  const config = resolvePartner(req, res);
-  if (!config) return;
-
-  const days = parseRange(req.query.range as string);
-  const trend = buildTrend('comments', config, days);
-
-  return res.json({
-    partner: config.id,
-    metric: 'comment-volume',
-    rangeDays: days,
-    points: trend,
-  });
-});
-
-analyticsRouter.get('/latency', (req, res) => {
-  const config = resolvePartner(req, res);
-  if (!config) return;
-
-  const days = parseRange(req.query.range as string);
-  const trend = buildTrend('latency', config, days);
-
-  return res.json({
-    partner: config.id,
-    metric: 'latency',
-    unit: 'ms',
-    rangeDays: days,
-    points: trend,
-  });
-});
-
-analyticsRouter.get('/error-rate', (req, res) => {
-  const config = resolvePartner(req, res);
-  if (!config) return;
-
-  const days = parseRange(req.query.range as string);
-  const trend = buildTrend('errorRate', config, days);
-
-  return res.json({
-    partner: config.id,
-    metric: 'error-rate',
-    unit: 'percent',
-    rangeDays: days,
-    points: trend,
-  });
-});
-
-// CSV Export
-analyticsRouter.get('/export/csv', (req, res) => {
-  const config = resolvePartner(req, res);
-  if (!config) return;
-
-  const days = parseRange(req.query.range as string);
-  const trend = buildTrend('signals', config, days);
-
-  const rows = ['timestamp,value', ...trend.map((p) => `${p.timestamp},${p.value}`)];
-
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="analytics_${config.id}_${days}d.csv"`
+  const summaries = summarizeEvents(
+    events.filter((e) => e.partner_id === "gima")
   );
+  const gimaSummary = summaries.find((s) => s.partner_id === "gima");
+  if (!gimaSummary) {
+    return {
+      partner_id: "gima",
+      version: (cfg as any).version,
+      lean_program_clicks: 0,
+      lean_program_enrollments: 0
+    };
+  }
 
-  return res.send(rows.join('\n'));
-});
+  const clicks =
+    gimaSummary.metrics.find((m) => m.metric === "lean_program_clicks")
+      ?.count ?? 0;
+  const enrollments =
+    gimaSummary.metrics.find(
+      (m) => m.metric === "lean_program_enrollments"
+    )?.count ?? 0;
 
-export default analyticsRouter;
+  return {
+    partner_id: "gima",
+    version: gimaSummary.version,
+    lean_program_clicks: clicks,
+    lean_program_enrollments: enrollments
+  };
+}
