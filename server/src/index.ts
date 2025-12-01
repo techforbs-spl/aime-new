@@ -1,6 +1,7 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
+config();
 import { healthRouter } from './routes/health.js';
 import partnerRouter from './routes/partner.js';
 import analyticsRouter from './routes/analytics.js';
@@ -8,9 +9,6 @@ import logsRouter from './routes/logs.js';
 import personaRouter from './routes/persona.js';
 import creatorRouter from './routes/creator.js';
 import { z } from 'zod';
-
-// Load environment variables
-config();
 
 const FeatureFlags=z.object({
     FEATURE_ADMIN_ONLY:z.string().default('true'),
@@ -20,12 +18,12 @@ const FeatureFlags=z.object({
 });
 
 const flags=FeatureFlags.parse(process.env);
-const app = express();
+const app=express();
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/status', (_req: Request, res: Response) => {
+app.get('/api/status',(_req,res)=>{
     res.json({
         env:process.env.NODE_ENV||'staging',
         flags,
@@ -40,7 +38,7 @@ app.use('/api/logs', logsRouter);
 app.use('/api/persona', personaRouter);
 app.use('/api/creator', creatorRouter);
 
-app.post('/api/smoke/core', (req: Request, res: Response) => {
+app.post('/api/smoke/core',(req,res)=>{
     const ok=true;
     res.json({
         ok,
@@ -49,7 +47,7 @@ app.post('/api/smoke/core', (req: Request, res: Response) => {
     });
 });
 
-app.post('/api/signal/simulate', (req: Request, res: Response) => {
+app.post('/api/signal/simulate',(req,res)=>{
     if(flags.FEATURE_SIGNAL_NETWORK!=='true'){
         return res.status(412).json({
             ok:false,
