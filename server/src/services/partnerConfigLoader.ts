@@ -1,98 +1,104 @@
 import path from "path";
 import fs from "fs";
+import { z } from "zod";
 
-// -----------------------------
-// TYPES
-// -----------------------------
+// --- Types & Schemas ---
 
-export interface PersonaConfig {
-  id: string;
-  name: string;
-  tier?: "standard" | "premium";
-  active?: boolean;
-}
-
-export interface CreatorConfig {
-  id: string;
-  name: string;
-  specialty?: string;
-  active?: boolean;
-}
-
-export interface AnalyticsConfig {
-  baselineSignals: number;
-  baselineComments: number;
-  baselineLatencyMs: number;
-  baselineErrorRate: number;
-  dailyGrowthRate: number;
-  noiseMultiplier: number;
-}
+export type PartnerMode = {
+  type: string;
+  profile?: string;
+  volume?: string;
+  description?: string;
+};
 
 export interface PartnerConfig {
-  id: string;
-  name: string;
-  personas?: PersonaConfig[];
-  creators?: CreatorConfig[];
-  analytics: AnalyticsConfig;
+  partner_name: string;
+  display_name: string;
+  partner_id: string;
+  version?: number;
+  label?: string;
+  status: "active" | "inactive";
+  mode?: PartnerMode;
+  personas: {
+    primary: string;
+    secondary?: string[];
+  };
+  signal_library: {
+    hashtags: string[];
+    keywords: string[];
+    engagement_patterns?: string[];
+  };
+  trigger_library: Record<string, any>;
+  comment_engine: Record<string, any>;
+  routing: Record<string, any>;
+  reporting?: Record<string, any>;
+  governance?: Record<string, any>;
 }
 
-// -----------------------------
-// INTERNAL CACHE
-// -----------------------------
+// Optional: strict validation for GIMA V4
+const GimaV4Schema = z.object({
+  partner_name: z.literal("GIMA"),
+  display_name: z.string(),
+  partner_id: z.literal("gima"),
+  version: z.number().min(4),
+  status: z.enum(["active", "inactive"]),
+  mode: z.object({
+    type: z.string(),
+    profile: z.string().optional(),
+    volume: z.string().optional(),
+    description: z.string().optional()
+  }).optional()
+  // You can extend with more fields if needed
+}).passthrough();
 
-let partnerConfigs: Record<string, PartnerConfig> = {};
+// --- Internal Registry ---
 
-// -----------------------------
-// LOAD JSON FILES
-// -----------------------------
+const partnerRegistry: Map<string, PartnerConfig> = new Map();
 
-export function loadPartnerConfigs() {
-  try {
-    const filePath = path.join(__dirname, "../config/partners.json");
-
-    if (!fs.existsSync(filePath)) {
-      console.warn("⚠️ partners.json not found — using empty config.");
-      partnerConfigs = {};
-      return;
-    }
-
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const list: PartnerConfig[] = JSON.parse(raw);
-
-    partnerConfigs = {};
-    list.forEach((pc) => {
-      partnerConfigs[pc.id] = pc;
-    });
-
-    console.log("✅ Partner configs loaded:", Object.keys(partnerConfigs));
-  } catch (err) {
-    console.error("❌ Failed to load partner configs:", err);
-    partnerConfigs = {};
-  }
+function loadJsonConfig(configPath: string): any {
+  const fullPath = path.resolve(configPath);
+  const raw = fs.readFileSync(fullPath, "utf-8");
+  return JSON.parse(raw);
 }
 
-// -----------------------------
-// GET CONFIG BY PARTNER ID
-// -----------------------------
+// --- Loader for GIMA V4 ---
 
-export function getPartnerConfig(id: string): PartnerConfig | null {
-  if (!id) return null;
+export function loadGimaPartnerConfigV4(): PartnerConfig {
+  const configPath = "configs/partners/gima/gima_partner_config_v4.json";
+  const json = loadJsonConfig(configPath);
 
-  // Normalize ID (case-insensitive)
-  const key = id.trim().toLowerCase();
+  // Validate basic shape for safety
+  const parsed = GimaV4Schema.parse(json);
 
-  const config = partnerConfigs[key];
-  return config || null;
+  const config: PartnerConfig = {
+    ...json,
+    partner_name: parsed.partner_name,
+    partner_id: parsed.partner_id,
+    version: parsed.version ?? 4,
+    status: parsed.status
+  };
+
+  partnerRegistry.set(config.partner_id, config);
+
+  return config;
 }
 
-// -----------------------------
-// OPTIONAL: HOT RELOAD (DEV ONLY)
-// -----------------------------
+// --- Generic Registry API ---
 
-export function reloadPartnerConfigs() {
-  console.log("♻️ Reloading partner configs...");
-  loadPartnerConfigs();
+export function loadAllPartnerConfigs(): void {
+  partnerRegistry.clear();
+
+  // Load other partners here as needed
+  // e.g. loadAllmaxConfig(), loadAdeevaConfig(), etc.
+
+  // GIMA is now canonical on V4:
+  loadGimaPartnerConfigV4();
 }
 
-// Initial load
-loadPartnerConfigs();
+export function getPartnerConfig(partnerId: string): PartnerConfig | undefined {
+  return partnerRegistry.get(partnerId);
+}
+
+export function getAllPartnerConfigs(): PartnerConfig[] {
+  return Array.from(partnerRegistry.values());
+}
