@@ -6,12 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node --experimental-specifier-resolution=node dist/index.js",
-    "smoke": "node --experimental-specifier-resolution=node scripts/smoke.js",
+    "start": "node dist/index.js",
+    "smoke": "node scripts/smoke.js",
     "lint": "eslint . --ext .ts"
-  },
-  "engines": {
-    "node": ">=14.0.0"
   },
   "dependencies": {
     "cors": "^2.8.5",
