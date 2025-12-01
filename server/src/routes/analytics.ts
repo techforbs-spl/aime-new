@@ -1,8 +1,11 @@
+import express from 'express';
 import {
   getAllPartnerConfigs,
   getPartnerConfig,
   type PartnerConfig
 } from "./partnerConfigLoader";
+
+const router = express.Router();
 
 // Basic event type – your implementation may extend this.
 export interface AnalyticsEvent {
