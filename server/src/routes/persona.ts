@@ -1,3 +1,7 @@
+import express from 'express';
+
+const router = express.Router();
+
 export type PersonaKey =
   | "practitioner_educator"
   | "clinical_insights"
@@ -93,3 +97,20 @@ export const PERSONA_DEFINITIONS: Record<PersonaKey, PersonaConfig> = {
 export function getPersonaConfig(key: PersonaKey): PersonaConfig | undefined {
   return PERSONA_DEFINITIONS[key];
 }
+
+// Example route - customize as needed
+router.get('/', (req, res) => {
+  res.json(Object.values(PERSONA_DEFINITIONS));
+});
+
+router.get('/:key', (req, res) => {
+  const { key } = req.params;
+  const persona = getPersonaConfig(key as PersonaKey);
+  if (persona) {
+    res.json(persona);
+  } else {
+    res.status(404).json({ error: 'Persona not found' });
+  }
+});
+
+export const personaRouter = router;
