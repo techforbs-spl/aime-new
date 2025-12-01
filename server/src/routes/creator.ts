@@ -1,26 +1,68 @@
-import { Router, Request, Response } from 'express';
-import { getPartnerConfig, PartnerConfig } from '../services/partnerConfigLoader';
+import type { PersonaKey } from "./persona";
 
-const creatorRouter = Router();
+export type PartnerId = "allmax" | "adeeva" | "gima";
 
-// GET /api/creator/list?partner=PARTNER_ID
-creatorRouter.get('/list', (req: Request, res: Response) => {
-  const partnerId: string = (req.query.partner as string) || '';
+export interface CreatorProfile {
+  id: string; // platform-specific handle or internal ID
+  handle: string; // e.g. @dr_smith
+  platform: "tiktok" | "instagram" | "youtube" | "other";
+  partnerId?: PartnerId; // which partner this creator is most aligned with (optional)
+  defaultPersona?: PersonaKey; // default persona for comments to this creator
+  tags?: string[]; // labels like "practitioner", "athlete", "educator"
+  isTestAccount?: boolean; // can be used in staging/synthetic mode
+}
 
-  if (!partnerId) {
-    return res.status(400).json({ error: 'Missing partner query parameter' });
-  }
+export interface CreatorRegistry {
+  [creatorId: string]: CreatorProfile;
+}
 
-  const config: PartnerConfig | null = getPartnerConfig(partnerId);
+/**
+ * In-memory registry. In a real deployment this may be replaced
+ * with a storage-backed repository (DB, KV store, etc.).
+ */
+const creatorRegistry: CreatorRegistry = {};
 
-  if (!config) {
-    return res.status(404).json({ error: `Partner not found: ${partnerId}` });
-  }
+/**
+ * Register or update a creator profile.
+ */
+export function upsertCreator(creator: CreatorProfile): void {
+  creatorRegistry[creator.id] = creator;
+}
 
-  return res.json({
-    partner: config.id,
-    creators: config.creators ?? []
-  });
-});
+/**
+ * Get a creator profile by ID.
+ */
+export function getCreatorById(id: string): CreatorProfile | undefined {
+  return creatorRegistry[id];
+}
 
-export default creatorRouter;
+/**
+ * Convenience function: assign a creator to GIMA with a GIMA-aligned persona.
+ * This is useful when seeding test data or routing practitioners.
+ */
+export function assignCreatorToGima(
+  creatorId: string,
+  handle: string,
+  platform: CreatorProfile["platform"],
+  defaultPersona: PersonaKey = "practitioner_educator"
+): CreatorProfile {
+  const profile: CreatorProfile = {
+    id: creatorId,
+    handle,
+    platform,
+    partnerId: "gima",
+    defaultPersona,
+    tags: ["practitioner", "education"]
+  };
+
+  upsertCreator(profile);
+  return profile;
+}
+
+/**
+ * List all creators currently in memory.
+ * This is primarily for debugging and admin views.
+ */
+export function listCreators(): CreatorProfile[] {
+  return Object.values(creatorRegistry);
+}
