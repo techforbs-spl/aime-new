@@ -3,7 +3,7 @@ import {
   getAllPartnerConfigs,
   PartnerConfig,
   PartnerId
-} from '../services/partnerConfigLoader';
+} from '../services/partnerConfigLoader.js';
 
 const router = Router();
 
@@ -52,7 +52,7 @@ router.get('/partner/:id/detail', (req: Request, res: Response) => {
   try {
     const partnerId = req.params.id as PartnerId;
 
-    const cfg = getAllPartnerConfigs().find(c => c.partnerId === partnerId);
+    const cfg = getAllPartnerConfigs().find((c: PartnerConfig) => c.partnerId === partnerId);
 
     if (!cfg) {
       return res.status(404).json({ error: `Unknown partner ID: ${partnerId}` });
