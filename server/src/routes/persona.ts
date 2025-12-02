@@ -3,7 +3,7 @@ import {
   getPartnerConfig,
   PartnerId,
   PartnerConfig
-} from '../services/partnerConfigLoader.js';
+} from '../services/partnerConfigLoader';
 
 const router = Router();
 
