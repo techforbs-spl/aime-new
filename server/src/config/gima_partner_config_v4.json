@@ -1,0 +1,91 @@
+{
+  "partnerId": "gima",
+  "version": "4",
+  "name": "Global Integrative Medicine Academy",
+  "slug": "gima",
+  "brand": {
+    "primaryColor": "#005B9E",
+    "secondaryColor": "#00A6C7",
+    "accentColor": "#FFD166",
+    "logoVariant": "gima-standard"
+  },
+  "currency": "USD",
+  "locales": ["en-US", "en-CA"],
+  "commentLimits": {
+    "maxDailyComments": 2000,
+    "maxCommentsPerUserPerDay": 10,
+    "minSecondsBetweenComments": 45
+  },
+  "trafficProfile": {
+    "tier": "high_volume",
+    "expectedDailySignals": 25000,
+    "burstFactor": 2.5,
+    "priority": 9
+  },
+  "funnels": {
+    "professionalCourses": {
+      "enabled": true,
+      "primaryCta": "View Course Details",
+      "secondaryCta": "Join Waitlist",
+      "trackingTag": "gima_pro_course"
+    },
+    "freeWebinars": {
+      "enabled": true,
+      "primaryCta": "Reserve Your Seat",
+      "secondaryCta": "View Speakers",
+      "trackingTag": "gima_webinar"
+    }
+  },
+  "personaRouting": {
+    "defaultPersonaId": "P-GIMA-EDU",
+    "priorityPersonas": [
+      "P-GIMA-EDU",
+      "P-GIMA-COACH",
+      "P-002"
+    ],
+    "rules": [
+      {
+        "id": "gima_pro_clinicians",
+        "match": {
+          "audience": ["clinician", "nurse", "chiropractor"],
+          "platform": ["instagram", "tiktok"]
+        },
+        "personaId": "P-GIMA-EDU"
+      },
+      {
+        "id": "gima_high_volume_reels",
+        "match": {
+          "contentType": ["reel", "short"],
+          "minReach": 5000
+        },
+        "personaId": "P-GIMA-COACH"
+      }
+    ]
+  },
+  "featureFlags": {
+    "adminOnly": true,
+    "enableMembers": false,
+    "enablePartners": false,
+    "enablePublicApi": false,
+    "enableAutoPublish": false,
+    "enableHighVolumeBurstMode": true
+  },
+  "tracking": {
+    "partnerCode": "GIMA",
+    "utmSource": "aime",
+    "utmMedium": "comment_engine",
+    "utmCampaignPrefix": "gima_",
+    "analyticsBucket": "gima-aime-events"
+  },
+  "governance": {
+    "requiresClinicianDisclosure": true,
+    "maxMedicalClaimsPerComment": 0,
+    "requiresManualReview": true,
+    "sensitiveTopics": [
+      "diagnosis",
+      "cure",
+      "treatment",
+      "prescription"
+    ]
+  }
+}
