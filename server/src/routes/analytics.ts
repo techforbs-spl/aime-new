@@ -7,9 +7,11 @@ router.get("/:partner/modes", (req, res) => {
     const { partner } = req.params; 
     const config = loadPartnerConfig(partner); 
     res.json(config.modes); 
-  } catch (error) { 
-    res.status(400).json({ error: error.message }); 
-  } 
+  } catch (error: unknown) {
+  const err = error as Error;
+  console.error(err.message);
+  res.status(500).json({ error: err.message });
+}
 }); 
 
 router.get("/:partner/defaults", (req, res) => {
@@ -17,9 +19,11 @@ router.get("/:partner/defaults", (req, res) => {
     const { partner } = req.params; 
     const config = loadPartnerConfig(partner); 
     res.json(config.defaults);
-  } catch (error) { 
-    res.status(400).json({ error: error.message }); 
-  }
+  } catch (error: unknown) {
+  const err = error as Error;
+  console.error(err.message);
+  res.status(500).json({ error: err.message });
+}
 }); 
 
 export default router;
