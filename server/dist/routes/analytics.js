@@ -1,61 +1,68 @@
 import { Router } from 'express';
-import { getSnapshot } from '../data/snapshots.js';
-const analyticsRouter = Router();
-function metricResponse(snapshot, key) {
-    return {
-        partner: snapshot.partner,
-        value: snapshot.metrics[key],
-        updatedAt: new Date().toISOString(),
-    };
-}
-analyticsRouter.get('/signal-volume', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    res.json(metricResponse(snapshot, 'signals'));
+import { listPartnerConfigs } from '../services/partnerConfigLoader';
+const router = Router();
+// GET /analytics/health
+router.get('/health', (_req, res) => {
+    res.json({
+        status: 'ok',
+        mode: 'synthetic',
+        sprint: '2'
+    });
 });
-analyticsRouter.get('/comment-volume', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    res.json(metricResponse(snapshot, 'comments'));
-});
-analyticsRouter.get('/latency', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    res.json(metricResponse(snapshot, 'latencyMs'));
-});
-analyticsRouter.get('/error-rate', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    res.json(metricResponse(snapshot, 'errorRate'));
-});
-analyticsRouter.get('/campaign-performance', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    res.json(snapshot.campaigns);
-});
-analyticsRouter.get('/export/csv', (req, res) => {
-    const snapshot = getSnapshot(req.query.partner);
-    const entity = (req.query.entity ?? 'signals').toLowerCase();
-    const map = {
-        signals: snapshot.signals,
-        'comment-engine': snapshot.comments,
-        personas: snapshot.personas,
-        creators: snapshot.creators,
-        campaigns: snapshot.campaigns,
-        logs: snapshot.logs,
-    };
-    const data = map[entity] ?? snapshot.signals;
-    if (!Array.isArray(data) || data.length === 0) {
-        return res.status(204).end();
+// GET /analytics/trend
+router.get('/trend', (_req, res) => {
+    try {
+        const today = new Date();
+        const data = [];
+        // simple 7-day mock trend
+        for (let i = 6; i >= 0; i -= 1) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const impressions = 1000 + i * 120;
+            const clicks = 80 + i * 10;
+            data.push({
+                date: d.toISOString().split('T')[0],
+                impressions,
+                clicks,
+                ctr: +(clicks / impressions * 100).toFixed(2)
+            });
+        }
+        res.json({
+            mode: 'synthetic',
+            points: data
+        });
     }
-    const headers = Array.from(data.reduce((set, entry) => {
-        Object.keys(entry).forEach((key) => set.add(key));
-        return set;
-    }, new Set()));
-    const rows = data.map((entry) => headers
-        .map((key) => {
-        const value = entry[key];
-        return typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value ?? '');
-    })
-        .join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
+    catch (error) {
+        const err = error;
+        // eslint-disable-next-line no-console
+        console.error('Trend analytics error:', err.message);
+        res.status(500).json({ error: 'Failed to generate trend analytics' });
+    }
+});
+// GET /analytics/partners
+router.get('/partners', (_req, res) => {
+    try {
+        const configs = listPartnerConfigs();
+        res.json(configs);
+    }
+    catch (error) {
+        const err = error;
+        // eslint-disable-next-line no-console
+        console.error('Partner analytics error:', err.message);
+        res.status(500).json({ error: 'Failed to load partner configs' });
+    }
+});
+// GET /analytics/export
+router.get('/export', (_req, res) => {
+    // Sprint-2: CSV only, PNG/JSON deferred
+    const csv = [
+        'date,impressions,clicks,ctr',
+        '2025-11-01,1000,80,8.0',
+        '2025-11-02,1200,96,8.0',
+        '2025-11-03,1400,112,8.0'
+    ].join('\n');
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${snapshot.partner.toLowerCase()}-${entity}.csv"`);
+    res.setHeader('Content-Disposition', 'attachment; filename="aime_analytics_sample.csv"');
     res.send(csv);
 });
-export default analyticsRouter;
+export default router;
