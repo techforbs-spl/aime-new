@@ -6,8 +6,8 @@ import { healthRouter } from './routes/health.js';
 import partnerRouter from './routes/partner.js';
 import analyticsRouter from './routes/analytics.js';
 import logsRouter from './routes/logs.js';
-import personaRouter from './services/persona';
-import creatorRouter from './services/creator';
+import personaRouter from './routes/persona';
+import creatorRouter from './routes/creator';
 import { z } from 'zod';
 
 const FeatureFlags=z.object({
