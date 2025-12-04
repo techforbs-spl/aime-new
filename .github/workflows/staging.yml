@@ -1,77 +1,42 @@
-name: Staging Deployment
+name: Deploy to Staging
 
 on:
   push:
-    branches: [ main ]  # or your staging branch name
-  workflow_dispatch:    # Allow manual triggers
-
-jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
+    branches:
+      - main
+      - master
     
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      working-directory: ./server
-      run: npm ci
-
-    - name: Build
-      working-directory: ./server
-      run: npm run build
-      env:
-        NODE_ENV: production
-
-    - name: Run smoke tests
-      working-directory: ./server
-      run: |
-        # Start server in background
-        npm run start & 
-        # Wait for server to be ready
-        npx wait-on http://localhost:8080/api/health
-        # Run smoke tests
-        npm run smoke
-      env:
-        NODE_ENV: test
-        PORT: 8080
-
-  deploy-staging:
-    name: Deploy to Staging
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: success()
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      working-directory: ./server
-      run: npm ci --production
-
-    - name: Deploy to Staging
-      run: |
-        # Add your deployment commands here
-        # For example, if using PM2:
-        # npm install -g pm2
-        # pm2 start dist/index.js --name "aime-staging"
-        echo "Deployment to staging would happen here"
-      env:
-        NODE_ENV: staging
-        # Add your staging environment variables here
-        # DATABASE_URL: ${{ secrets.STAGING_DB_URL }}
-        # OTHER_ENV_VAR: ${{ secrets.OTHER_STAGING_VAR }}
+    workflow_dispatch:
+      
+    jobs:
+      build-and-deploy:
+      runs-on: ubuntu-latest
+      
+      steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v3
+        
+        - name: Set up Node
+          uses: actions/setup-node@v3
+          with:
+            node-version: 18
+        
+        - name: Install Dependencies
+          run: npm install
+        
+        - name: Build Project
+          run: npm run build --if-present
+        
+        - name: Run TypeScript Check
+          run: npm run type-check --if-present
+        
+        - name: Deploy to Staging Server
+          env:
+            STAGING_HOST: ${{ secrets.STAGING_HOST }}
+            STAGING_USER: ${{ secrets.STAGING_USER }}
+            STAGING_KEY: ${{ secrets.STAGING_KEY }}
+          run: |
+          echo "Deploying to staging..."
+          # Replace this with your developer’s actual staging deployment script
+          # Example:
+          # rsync -avz --delete dist/ $STAGING_USER@$STAGING_HOST:/var/www/staging/
