@@ -30,6 +30,10 @@ jobs:
       env:
         NODE_ENV: production
 
+    - name: Start server
+      run: npm start
+      working-directory: ./server
+
     - name: Run smoke tests
       working-directory: ./server
       run: |
